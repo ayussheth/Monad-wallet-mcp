@@ -1,18 +1,21 @@
 {
-  "name": "monad-wallet-mcp",
+  "name": "monad-mcp",
   "version": "1.0.0",
-  "description": "A command-line interface for managing cryptocurrency transactions on the Monad Network",
+  "description": "A Modular Content Provider (MCP) wallet implementation for the Monad Network",
   "main": "build/index.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node build/index.js"
   },
+  "keywords": ["monad", "wallet", "mcp", "blockchain", "data-availability"],
+  "author": "Ayussh",
+  "license": "MIT",
   "dependencies": {
-    "viem": "^2.7.9"
+    "viem": "^2.7.8",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
-    "typescript": "^5.3.3"
+    "@types/node": "^20.11.19"
   }
 } 

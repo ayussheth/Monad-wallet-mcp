@@ -12,10 +12,9 @@ const monadBanner = `\x1b[95m
 ║  ██║ ╚═╝ ██║╚██████╔╝██║ ╚████║██║  ██║██████╔╝      ║
 ║  ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═════╝       ║
 ║                                                        ║
-╚════════════════════════════════════════════════════════╝\x1b[0m`;
+╚════════════════════════════════════════════════════════╝\x1b[0m
 
-const helpText = `
-🔷 Monad Wallet MCP - Command Line Interface
+🔷 Monad MCP - Modular Content Provider
 
 📋 Available Commands:
 
@@ -24,19 +23,46 @@ const helpText = `
   history  <tx-hash>                     - View transaction details
   info                                   - Display Monad network information
   gas                                    - Show current gas price
+  serve    <tx-hash>                     - Serve stored transaction data
 
 💡 Examples:
   $ node build/index.js check 0x123...   - Check balance
   $ node build/index.js transfer <key> 0x456... 1.5  - Send 1.5 MONAD
   $ node build/index.js history <tx-hash> - View transaction details
+  $ node build/index.js serve <tx-hash>  - Serve transaction data
 
-Note: All amounts are in MONAD tokens
-`;
+Note: All amounts are in MONAD tokens`;
 
 const client = createPublicClient({
     chain: monad,
     transport: http()
 });
+
+// Simple in-memory data store for transaction data
+const transactionStore = new Map();
+
+async function storeTransactionData(txHash, data) {
+    transactionStore.set(txHash, {
+        data,
+        timestamp: Date.now(),
+        servingCount: 0
+    });
+    console.log(`\n📦 Transaction data stored and available for network`);
+    console.log(`Transaction: ${txHash}`);
+}
+
+async function serveTransactionData(txHash) {
+    const txData = transactionStore.get(txHash);
+    if (txData) {
+        txData.servingCount++;
+        console.log(`\n🔍 Serving stored transaction data`);
+        console.log(`Transaction: ${txHash}`);
+        console.log(`Times served: ${txData.servingCount}`);
+        console.log(`Stored at: ${new Date(txData.timestamp).toLocaleString()}`);
+        return txData.data;
+    }
+    return null;
+}
 
 async function getFormattedBalance(address) {
     try {
@@ -50,13 +76,13 @@ async function getFormattedBalance(address) {
 }
 
 async function main() {
-    console.log(monadBanner);
-    
     const args = process.argv.slice(2);
     const command = args[0];
     
+    // Show banner only once
+    console.log(monadBanner);
+    
     if (!command || command === 'help') {
-        console.log(helpText);
         return;
     }
     
@@ -108,6 +134,11 @@ async function main() {
                     const receiverFinalBalance = await getFormattedBalance(toAddress);
                     console.log('\n✅ Transaction Complete!');
                     console.log(`Hash: ${hash}`);
+                    
+                    // Store transaction data for MCP functionality
+                    const txData = await client.getTransaction({ hash });
+                    await storeTransactionData(hash, txData);
+                    
                     console.log('\n📊 Updated Balances');
                     console.log(`From: ${account.address}`);
                     console.log(`New Balance: ${senderFinalBalance} MONAD`);
@@ -151,8 +182,18 @@ async function main() {
                 console.log('\n⛽ Gas Information');
                 console.log(`Current price: ${formatEther(gasPrice)} MONAD\n`);
                 break;
+            case 'serve':
+                if (args.length < 2) {
+                    console.error('Please provide a transaction hash');
+                    process.exit(1);
+                }
+                const serveHash = args[1];
+                const data = await serveTransactionData(serveHash);
+                if (!data) {
+                    console.log('\n❌ No stored data found for this transaction');
+                }
+                break;
             default:
-                console.log(helpText);
                 break;
         }
     }

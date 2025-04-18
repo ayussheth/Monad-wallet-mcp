@@ -13,10 +13,9 @@ const monadBanner = `\x1b[95m
 ║  ██║ ╚═╝ ██║╚██████╔╝██║ ╚████║██║  ██║██████╔╝      ║
 ║  ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═════╝       ║
 ║                                                        ║
-╚════════════════════════════════════════════════════════╝\x1b[0m`;
+╚════════════════════════════════════════════════════════╝\x1b[0m
 
-const helpText = `
-🔷 Monad Wallet MCP - Command Line Interface
+🔷 Monad MCP - Modular Content Provider
 
 📋 Available Commands:
 
@@ -25,14 +24,15 @@ const helpText = `
   history  <tx-hash>                     - View transaction details
   info                                   - Display Monad network information
   gas                                    - Show current gas price
+  serve    <tx-hash>                     - Serve stored transaction data
 
 💡 Examples:
   $ node build/index.js check 0x123...   - Check balance
   $ node build/index.js transfer <key> 0x456... 1.5  - Send 1.5 MONAD
   $ node build/index.js history <tx-hash> - View transaction details
+  $ node build/index.js serve <tx-hash>  - Serve transaction data
 
-Note: All amounts are in MONAD tokens
-`;
+Note: All amounts are in MONAD tokens`;
 
 const client = createPublicClient({
   chain: monad,
@@ -53,11 +53,10 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
 
-  // Always show the MONAD banner
+  // Show banner only once
   console.log(monadBanner);
 
   if (!command || command === 'help') {
-    console.log(helpText);
     return;
   }
 
@@ -161,8 +160,27 @@ async function main() {
         console.log(`Current price: ${formatEther(gasPrice)} MONAD\n`);
         break;
 
+      case 'serve':
+        if (args.length < 2) {
+          console.error('Please provide a transaction hash');
+          process.exit(1);
+        }
+        const txHashToServe = args[1];
+        console.log('\n🔍 Fetching transaction details...');
+        try {
+          const receipt = await client.getTransactionReceipt({ hash: txHashToServe as `0x${string}` });
+          console.log('\n📝 Transaction Details');
+          console.log(`Status: ${receipt.status === 'success' ? '✅ Success' : '❌ Failed'}`);
+          console.log(`Block Number: ${receipt.blockNumber}`);
+          console.log(`From: ${receipt.from}`);
+          console.log(`To: ${receipt.to}`);
+          console.log(`Gas Used: ${receipt.gasUsed} wei\n`);
+        } catch (error) {
+          console.error('\n❌ Failed to fetch transaction:', error);
+        }
+        break;
+
       default:
-        console.log(helpText);
         break;
     }
   } catch (error) {
